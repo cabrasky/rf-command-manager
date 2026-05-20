@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RF Command Manager — Broadlink RM4 Pro</title>
+<style>
+:root {
+  --bg: #0b0b12;
+  --surface: #151520;
+  --surface2: #1e1e2e;
+  --border: #282840;
+  --text: #e2e2f0;
+  --text2: #8484a8;
+  --accent: #6c5ce7;
+  --accent2: #a78bfa;
+  --green: #00d2a0;
+  --red: #ff6b6b;
+  --orange: #ff9f43;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Header ─── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+header h1 { font-size: 1rem; font-weight: 600; letter-spacing: -0.3px; }
+.status-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+.status-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+/* ─── Status bar ─── */
+.status-bar {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--text2);
+}
+.status-bar strong { color: var(--text); }
+
+/* ─── Connection bar ─── */
+.connection-bar {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.connection-bar input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 180px;
+  font-family: monospace;
+}
+.connection-bar input::placeholder { color: var(--text2); }
+
+/* ─── Buttons ─── */
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-height: 44px;
+  min-width: 44px;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-success { background: #0d7d5e; color: #fff; }
+.btn-success:hover { background: var(--green); }
+.btn-danger { background: #5c1a1a; color: #fff; }
+.btn-danger:hover { background: var(--red); }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-outline:hover { background: var(--surface2); }
+.btn-sm { padding: 6px 12px; font-size: 0.78rem; min-height: 36px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn.loading { pointer-events: none; }
+
+/* ─── Layout ─── */
+main { padding: 16px; max-width: 960px; margin: 0 auto; }
+
+/* ─── Sections ─── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.section-header h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Remote Control Layout ─── */
+.device-group {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.device-header {
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.device-header h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+  user-select: none;
+}
+.device-header .badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* ─── Remote button grid ─── */
+.device-commands {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  transition: background 0.2s;
+}
+.device-commands.layout-mode {
+  background: rgba(108,92,231,0.04);
+  border: 2px dashed rgba(108,92,231,0.2);
+  border-radius: 12px;
+  margin: 4px 12px 12px;
+  padding: 12px;
+}
+
+.remote-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  text-align: center;
+  gap: 4px;
+  overflow: hidden;
+}
+.remote-btn.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+.remote-btn.drag-over {
+  border-color: var(--accent2);
+  box-shadow: 0 0 16px rgba(108,92,231,0.25);
+  background: rgba(108,92,231,0.08);
+}
+.remote-btn.draggable {
+  cursor: grab;
+}
+.remote-btn.draggable:active {
+  cursor: grabbing;
+}
+.remote-btn .drag-handle {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 0.7rem;
+  color: var(--text2);
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: grab;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.remote-btn.draggable .drag-handle { opacity: 0.8; }
+.remote-btn:active .drag-handle { cursor: grabbing; }
+
+/* Span controls in layout mode */
+.remote-btn .span-controls {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 1px 2px;
+  border: 1px solid var(--border);
+}
+.remote-btn.draggable .span-controls { opacity: 0.85; }
+.span-controls button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent2);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.span-controls button:hover { background: var(--surface2); color: #fff; }
+.span-controls span {
+  font-size: 0.6rem;
+  color: var(--text2);
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Selection checkmark */
+.remote-btn .sel-check {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 1.4rem;
+  color: var(--accent2);
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(108,92,231,0.5);
+  transition: opacity 0.15s;
+}
+.remote-btn.selected .sel-check { opacity: 1; }
+.remote-btn.selected { border-color: var(--accent2); box-shadow: 0 0 12px rgba(108,92,231,0.2); }
+
+/* Command groups */
+.cmd-group {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(108,92,231,0.03);
+}
+.cmd-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text2);
+  gap: 8px;
+}
+.cmd-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.remote-btn:active {
+  transform: scale(0.94);
+  background: var(--accent);
+  border-color: var(--accent2);
+  box-shadow: 0 0 20px rgba(108,92,231,0.3);
+}
+.remote-btn.flash {
+  animation: btnBurst 0.45s ease;
+}
+.remote-btn .btn-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+.remote-btn:active .btn-icon { transform: scale(1.15); }
+.remote-btn .btn-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* Power-style button (commands with OFF/ON) */
+.remote-btn.power {
+  background: #3d1515;
+  border-color: #5c2020;
+}
+.remote-btn.power:active {
+  background: var(--red);
+  border-color: #ff8888;
+  box-shadow: 0 0 20px rgba(255,107,107,0.4);
+}
+.remote-btn.power .btn-label { color: #ff9999; }
+
+/* Speed-style button */
+.remote-btn.speed {
+  background: #1a2a1a;
+  border-color: #2a402a;
+}
+.remote-btn.speed:active {
+  background: var(--green);
+  border-color: #44ffaa;
+  box-shadow: 0 0 20px rgba(0,210,160,0.3);
+}
+.remote-btn.speed .btn-label { color: #88ddaa; }
+
+/* Light-style button */
+.remote-btn.light-cmd {
+  background: #1a1a2e;
+  border-color: #2a2a4a;
+}
+.remote-btn.light-cmd:active {
+  background: var(--accent);
+  border-color: var(--accent2);
+  box-shadow: 0 0 20px rgba(108,92,231,0.4);
+}
+
+/* Action buttons on remote (edit/delete) */
+.remote-btn .btn-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.remote-btn:hover .btn-actions,
+.remote-btn:focus-within .btn-actions { opacity: 1; }
+.remote-btn .btn-actions button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.remote-btn .btn-actions button:hover { color: var(--text); background: var(--surface2); }
+
+/* ─── Remote button repeat indicator ─── */
+.repeat-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 0.55rem;
+  color: var(--text2);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.remote-btn:hover .repeat-badge { opacity: 1; }
+
+@keyframes btnBurst {
+  0% { box-shadow: 0 0 0 0 rgba(0,210,160,0.6); }
+  50% { box-shadow: 0 0 30px 8px rgba(0,210,160,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(0,210,160,0); }
+}
+
+/* ─── Modals ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: 92%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  animation: slideUp 0.2s ease;
+}
+.modal h2 { font-size: 1.05rem; margin-bottom: 16px; }
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text2);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.form-group textarea { font-family: monospace; font-size: 0.8rem; resize: vertical; min-height: 120px; }
+.form-group select { cursor: pointer; }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+}
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.radio-group input[type="radio"] { accent-color: var(--accent); width: auto; }
+
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+/* ─── Toasts ─── */
+#toast-container {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  left: 16px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  animation: slideIn 0.3s ease;
+  box-shadow: var(--shadow);
+  max-width: 400px;
+  pointer-events: auto;
+}
+.toast.success { background: #0d7d5e; color: #fff; }
+.toast.error { background: var(--red); color: #fff; }
+.toast.info { background: var(--accent); color: #fff; }
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ─── Empty state ─── */
+.empty-state {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text2);
+}
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+/* ─── Help ─── */
+.help-text { font-size: 0.78rem; color: var(--text2); margin-top: 4px; }
+.hidden { display: none !important; }
+code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+}
+
+/* ─── Responsive: Tablet ─── */
+@media (max-width: 768px) {
+  .device-commands { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; padding: 12px; }
+  .device-commands.layout-mode { margin: 4px 8px 8px; padding: 8px; }
+  .remote-btn { min-height: 64px; padding: 10px 6px; border-radius: 12px; }
+  .remote-btn .btn-icon { font-size: 1.2rem; }
+  .remote-btn .btn-label { font-size: 0.68rem; }
+  header h1 { font-size: 0.9rem; }
+  .connection-bar { flex-direction: column; align-items: stretch; }
+  .connection-bar .btn { width: 100%; }
+  .status-bar { gap: 10px; }
+}
+
+/* ─── Responsive: Mobile ─── */
+@media (max-width: 480px) {
+  header { padding: 8px 12px; }
+  header h1 { font-size: 0.82rem; }
+  main { padding: 10px; }
+  .section { padding: 12px; border-radius: var(--radius-sm); }
+  .section-header { flex-direction: column; align-items: stretch; }
+  .section-header > div { display: flex; gap: 6px; flex-wrap: wrap; }
+  .device-group { border-radius: 14px; }
+  .device-commands { grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px; }
+  .device-commands.layout-mode { grid-template-columns: repeat(3, 1fr); margin: 2px 4px 4px; padding: 6px; }
+  .device-header { padding: 10px 14px; }
+  .remote-btn { min-height: 56px; padding: 8px 4px; border-radius: 10px; }
+  .remote-btn .btn-icon { font-size: 1.1rem; }
+  .remote-btn .btn-label { font-size: 0.62rem; }
+  .remote-btn .btn-actions { opacity: 0.7; }
+  .remote-btn .btn-actions button { width: 20px; height: 20px; font-size: 0.5rem; }
+  .cmd-group-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .cmd-group { padding: 6px; }
+  .span-controls button { width: 18px; height: 18px; font-size: 0.65rem; }
+  .span-controls span { font-size: 0.55rem; min-width: 16px; }
+  .btn { padding: 10px 14px; font-size: 0.82rem; }
+  .btn-sm { padding: 6px 10px; font-size: 0.75rem; }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 95vh;
+    margin-top: auto;
+    padding: 16px;
+  }
+  .modal-overlay { align-items: flex-end; }
+  .modal-actions { flex-direction: column; }
+  .modal-actions .btn { width: 100%; }
+  .radio-group { flex-direction: column; gap: 8px; }
+  #toast-container { left: 8px; right: 8px; bottom: 8px; }
+  .toast { max-width: 100%; }
+  .status-bar { font-size: 0.72rem; gap: 8px; padding: 6px 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="status-dot" id="statusDot"></div>
+  <h1>🧌 RF Command Manager — Broadlink RM4 Pro</h1>
+</header>
+
+<!-- Status bar (hidden until connected) -->
+<div class="status-bar hidden" id="statusBar">
+  <span>Device: <strong id="sbDevice">broadlink_rm4_pro</strong></span>
+  <span>MAC: <strong>e8:70:72:ba:79:5c</strong></span>
+  <span>Commands: <strong id="sbCount">0</strong></span>
+</div>
+
+<!-- Connection bar (hidden after connected) -->
+<div class="connection-bar" id="connectionBar">
+  <input type="password" id="tokenInput" placeholder="HA Long-Lived Access Token" autocomplete="off">
+  <button class="btn btn-primary" onclick="connect()">🔌 Connect</button>
+  <span style="font-size:0.78rem;color:var(--text2)" id="connStatus">Not connected</span>
+</div>
+
+<!-- Main app -->
+<main id="app" class="hidden">
+  <!-- Learn Section -->
+  <div class="section">
+    <div class="section-header">
+      <h2>📡 Learn New Command</h2>
+      <button class="btn btn-primary" onclick="openLearnModal()">+ Learn</button>
+    </div>
+    <p class="help-text">Press the button on your RF remote while the Broadlink is in learning mode. Commands auto-save to local registry.</p>
+  </div>
+
+  <!-- Commands Section -->
+  <div class="section">
+    <div class="section-header">
+      <h2>📋 Registered Commands</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="syncFromHA(false)" title="Live sync from HA storage via bridge API">📥 Pull from HA</button>
+        <button class="btn btn-outline btn-sm" onclick="refreshCommands()">🔄 Refresh</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCommands()">💾 Export</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">
+          📤 Import <input type="file" accept=".json" onchange="importCommands(this)" style="display:none">
+        </label>
+        <button class="btn btn-outline btn-sm" onclick="openPullModal()" title="Manual paste from storage file">📋 Manual Import</button>
+      </div>
+    </div>
+    <div id="commandsList">
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <p>No commands registered yet</p>
+        <p style="font-size:0.8rem">Click "+ Learn" to register RF/IR buttons, or "Pull from HA" to import existing ones</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Learn Modal -->
+<div class="modal-overlay hidden" id="learnModal">
+  <div class="modal">
+    <h2>🎓 Learn New Command</h2>
+    <div class="form-group">
+      <label>Device Name</label>
+      <input type="text" id="learnDevice" placeholder="e.g., Garage Door, LED Strip, Fan" list="deviceList" autocomplete="off">
+      <datalist id="deviceList"></datalist>
+    </div>
+    <div class="form-group">
+      <label>Command Name</label>
+      <input type="text" id="learnCommand" placeholder="e.g., Open, Power On, Speed Up" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Command Type</label>
+      <div class="radio-group">
+        <label><input type="radio" name="cmdType" value="rf" checked> RF (433MHz)</label>
+        <label><input type="radio" name="cmdType" value="ir"> IR (Infrared)</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Learning Timeout (seconds)</label>
+      <input type="number" id="learnTimeout" value="15" min="5" max="60">
+    </div>
+    <p class="help-text" style="margin-bottom:6px">After clicking "Start Learning", press and hold the button on your remote near the Broadlink RM4 Pro.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeLearnModal()">Cancel</button>
+      <button class="btn btn-primary" id="learnBtn" onclick="startLearning()">🎓 Start Learning</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send Modal -->
+<div class="modal-overlay hidden" id="sendModal">
+  <div class="modal">
+    <h2>🚀 Send Command</h2>
+    <p style="margin-bottom:16px;color:var(--text2)">
+      Sending <strong id="sendCmdName" style="color:var(--text)"></strong>
+      to device <strong id="sendDeviceName" style="color:var(--text)"></strong>
+    </p>
+    <div class="form-group">
+      <label>Repeats</label>
+      <input type="number" id="sendRepeats" value="1" min="1" max="10">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSendModal()">Cancel</button>
+      <button class="btn btn-success" id="sendBtn" onclick="sendCommand()">🚀 Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pull from HA Modal -->
+<div class="modal-overlay hidden" id="pullModal">
+  <div class="modal">
+    <h2>📥 Pull Commands from Home Assistant</h2>
+    <p class="help-text" style="margin-bottom:12px">
+      Broadlink learned commands are stored in the HA container filesystem.
+      The REST/WebSocket API does not expose them — you need to extract the file manually.
+    </p>
+    <div class="form-group">
+      <label>Storage file path</label>
+      <code style="display:block;word-break:break-all;padding:8px 12px">/config/.storage/broadlink_remote_e87072ba795c_codes</code>
+    </div>
+    <p class="help-text" style="margin-bottom:12px">
+      <strong>Option 1 — SSH into node1:</strong><br>
+      <code style="display:block;word-break:break-all;margin-top:4px;padding:8px 12px">docker exec homeassistant cat /config/.storage/broadlink_remote_e87072ba795c_codes</code>
+    </p>
+    <p class="help-text" style="margin-bottom:12px">
+      <strong>Option 2 — File Editor addon:</strong> Open the File Editor addon in HA, navigate to the path above, copy the contents.
+    </p>
+    <p class="help-text" style="margin-bottom:12px">
+      <strong>Option 3 — VS Code Server addon:</strong> Browse to the <code>.storage</code> folder and open the file.
+    </p>
+    <div class="form-group">
+      <label>Paste the JSON contents here</label>
+      <textarea id="pullTextarea" placeholder='Paste the contents of broadlink_remote_e87072ba795c_codes here...'></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closePullModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="parsePullText()">📥 Import into Registry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// Configuration
+// ═══════════════════════════════════════════
+const HA_URL = 'wss://homeassistant.cabrasky.net/api/websocket';
+const REMOTE_ENTITY = 'remote.broadlink_rm4_pro';
+const STORAGE_KEY = 'rf_manager_commands';
+const BRIDGE_URL = 'http://192.168.1.16:8088/api/commands';
+const BROADLINK_MAC = 'e87072ba795c';
+const STORAGE_FILE = `/config/.storage/broadlink_remote_${BROADLINK_MAC}_codes`;
+
+let ws = null;
+let msgId = 0;
+let connected = false;
+let pendingLearn = null;
+
+// ═══════════════════════════════════════════
+// Local Storage
+// ═══════════════════════════════════════════
+function loadCommands() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveCommands(cmds) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cmds));
+}
+
+// ═══════════════════════════════════════════
+// WebSocket
+// ═══════════════════════════════════════════
+function connect() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) return toast('Please enter your HA token', 'error');
+
+  if (ws) { ws.close(); ws = null; }
+
+  setConnStatus('Connecting...');
+  ws = new WebSocket(HA_URL);
+  ws._token = token;
+
+  ws.onopen = () => {};
+  ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+  ws.onclose = () => {
+    connected = false;
+    updateStatus(false);
+    setConnStatus('Disconnected');
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('connectionBar').classList.remove('hidden');
+    document.getElementById('statusBar').classList.add('hidden');
+  };
+  ws.onerror = () => setConnStatus('Connection error');
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'auth_required':
+      send({ type: 'auth', access_token: ws._token });
+      break;
+    case 'auth_ok':
+      connected = true;
+      updateStatus(true);
+      setConnStatus('Connected ✅');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('connectionBar').classList.add('hidden');
+      document.getElementById('statusBar').classList.remove('hidden');
+      document.getElementById('sbDevice').textContent = REMOTE_ENTITY.split('.')[1];
+      toast('Connected to Home Assistant', 'success');
+      send({ type: 'subscribe_events', event_type: 'state_changed' });
+      syncFromHA(true);
+      break;
+    case 'auth_invalid':
+      connected = false;
+      updateStatus(false);
+      setConnStatus('Invalid token ❌');
+      toast('Invalid access token', 'error');
+      break;
+    case 'result':
+      if (!msg.success && msg.error) handleError(msg);
+      if (msg.id && pendingLearn && msg.id >= pendingLearn.id) handleLearnResult(msg);
+      break;
+    case 'event':
+      break;
+  }
+}
+
+function handleError(msg) {
+  const err = msg.error;
+  if (err.code === 'not_loaded') {
+    toast('Broadlink device not available', 'error');
+  } else if (err.message) {
+    toast(`Error: ${err.message}`, 'error');
+  }
+}
+
+function send(data) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  if (data.type !== 'auth') data.id = ++msgId;
+  ws.send(JSON.stringify(data));
+  return data.id;
+}
+
+function updateStatus(ok) {
+  document.getElementById('statusDot').classList.toggle('connected', ok);
+}
+function setConnStatus(text) {
+  document.getElementById('connStatus').textContent = text;
+}
+
+// ═══════════════════════════════════════════
+// Service Calls
+// ═══════════════════════════════════════════
+function startLearning() {
+  const device = document.getElementById('learnDevice').value.trim();
+  const command = document.getElementById('learnCommand').value.trim();
+  const cmdType = document.querySelector('input[name="cmdType"]:checked').value;
+  const timeout = parseInt(document.getElementById('learnTimeout').value) || 15;
+
+  if (!device || !command) return toast('Please fill in device and command name', 'error');
+
+  const id = send({
+    type: 'call_service', domain: 'remote', service: 'learn_command',
+    target: { entity_id: REMOTE_ENTITY },
+    service_data: { device, command, command_type: cmdType, timeout }
+  });
+
+  pendingLearn = { id, device, command, cmdType };
+
+  const btn = document.getElementById('learnBtn');
+  btn.textContent = '⏳ Learning... (press button)';
+  btn.disabled = true;
+  btn.classList.add('loading');
+  toast(`Learning "${command}" for "${device}" — press the RF button now!`, 'info');
+}
+
+function handleLearnResult(msg) {
+  if (!pendingLearn) return;
+  if (msg.success) {
+    const { device, command, cmdType } = pendingLearn;
+    const cmds = loadCommands();
+    if (!cmds[device]) cmds[device] = {};
+    cmds[device][command] = { type: cmdType, learnedAt: new Date().toISOString() };
+    saveCommands(cmds);
+    renderCommands();
+    toast(`✅ Saved "${command}" (${cmdType.toUpperCase()}) — press the button now!`, 'success');
+  } else {
+    toast(`Learning failed: ${msg.error?.message || 'unknown error'}`, 'error');
+  }
+  setTimeout(() => {
+    closeLearnModal();
+    const btn = document.getElementById('learnBtn');
+    btn.textContent = '🎓 Start Learning';
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    pendingLearn = null;
+  }, 2000);
+}
+
+function sendCommand() {
+  const device = document.getElementById('sendDeviceName').dataset.device;
+  const command = document.getElementById('sendCmdName').dataset.command;
+  const repeats = parseInt(document.getElementById('sendRepeats').value) || 1;
+
+  send({
+    type: 'call_service', domain: 'remote', service: 'send_command',
+    target: { entity_id: REMOTE_ENTITY },
+    service_data: { device, command, num_repeats: repeats }
+  });
+
+  // Flash the remote button
+  const btn = document.getElementById(`rbtn-${escHtmlId(device)}-${escHtmlId(command)}`);
+  if (btn) { btn.classList.add('flash'); setTimeout(() => btn.classList.remove('flash'), 450); }
+
+  toast(`Sent "${command}" to "${device}"`, 'success');
+  closeSendModal();
+}
+
+function deleteCommand(device, command) {
+  if (!confirm(`Delete "${command}" from "${device}"?`)) return;
+
+  send({
+    type: 'call_service', domain: 'remote', service: 'delete_command',
+    target: { entity_id: REMOTE_ENTITY },
+    service_data: { device, command }
+  });
+
+  const cmds = loadCommands();
+  if (cmds[device]) {
+    delete cmds[device][command];
+    if (Object.keys(cmds[device]).length === 0) delete cmds[device];
+    saveCommands(cmds);
+  }
+  renderCommands();
+  toast(`Deleted "${command}"`, 'info');
+}
+
+// ═══════════════════════════════════════════
+// Rename
+// ═══════════════════════════════════════════
+function renameCommand(device, oldName) {
+  const newName = prompt(`Rename command "${oldName}" in "${device}":`, oldName);
+  if (!newName || newName === oldName) return;
+  const cmds = loadCommands();
+  if (!cmds[device] || !cmds[device][oldName]) return;
+  if (cmds[device][newName]) return toast(`Command "${newName}" already exists`, 'error');
+  cmds[device][newName] = cmds[device][oldName];
+  delete cmds[device][oldName];
+  saveCommands(cmds);
+  renderCommands();
+  toast(`Renamed "${oldName}" → "${newName}"`, 'success');
+}
+
+function renameDevice(oldName) {
+  const newName = prompt(`Rename device "${oldName}":`, oldName);
+  if (!newName || newName === oldName) return;
+  const cmds = loadCommands();
+  if (!cmds[oldName]) return;
+  if (cmds[newName]) return toast(`Device "${newName}" already exists`, 'error');
+  cmds[newName] = cmds[oldName];
+  delete cmds[oldName];
+  saveCommands(cmds);
+  renderCommands();
+  toast(`Renamed device "${oldName}" → "${newName}"`, 'success');
+}
+
+// ═══════════════════════════════════════════
+// Pull from HA Storage
+// ═══════════════════════════════════════════
+function parsePullText() {
+  const raw = document.getElementById('pullTextarea').value.trim();
+  if (!raw) return toast('Paste the storage file contents first', 'error');
+
+  try {
+    const data = JSON.parse(raw);
+    // The storage file format: {"data": {"device": {"command": "base64code"}}} or {"version":..., "data":...}
+    const source = data.data || data;
+    const cmds = loadCommands();
+    let imported = 0;
+
+    for (const [device, commands] of Object.entries(source)) {
+      if (typeof commands !== 'object') continue;
+      if (!cmds[device]) cmds[device] = {};
+      for (const [cmdName, code] of Object.entries(commands)) {
+        if (cmds[device][cmdName]) continue; // don't overwrite existing
+        const type = typeof code === 'string' && code.length < 100 ? 'ir' : 'rf';
+        cmds[device][cmdName] = { type, learnedAt: null };
+        imported++;
+      }
+    }
+
+    saveCommands(cmds);
+    renderCommands();
+    closePullModal();
+    document.getElementById('pullTextarea').value = '';
+    toast(`Imported ${imported} command(s) from HA storage`, 'success');
+  } catch (err) {
+    toast('Invalid JSON — please check the pasted content', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════
+// UI Rendering — Remote Control Layout
+// ═══════════════════════════════════════════
+
+function getBtnClass(name, device) {
+  const n = name.toLowerCase();
+  if (/off\b|apag|power|stop/.test(n)) return 'power';
+  if (/speed|veloc|nivel|level|\d/.test(n)) return 'speed';
+  if (/light|luz|warm|neutral|blue|azul|calid|frio|cool|blanco|white|color|on/.test(n)) return 'light-cmd';
+  return '';
+}
+
+function getBtnIcon(name, device) {
+  const n = name.toLowerCase();
+  if (/off\b|apag/.test(n)) return '⏻';
+  if (/on\b/.test(n)) return '💡';
+  if (/speed\s*1|veloc\s*1|nivel\s*1/.test(n)) return '🐢';
+  if (/speed|veloc|nivel/.test(n)) return '🌀';
+  if (/light|luz/.test(n)) return '💡';
+  if (/warm|calid/.test(n)) return '🔶';
+  if (/neutral/.test(n)) return '⚪';
+  if (/blue|azul/.test(n)) return '🔵';
+  if (/cool|frio/.test(n)) return '🔹';
+  return '📶';
+}
+
+function quickSend(device, command) {
+  send({
+    type: 'call_service', domain: 'remote', service: 'send_command',
+    target: { entity_id: REMOTE_ENTITY },
+    service_data: { device, command, num_repeats: 1 }
+  });
+  const btn = document.getElementById(`rbtn-${escHtmlId(device)}-${escHtmlId(command)}`);
+  if (btn) { btn.classList.add('flash'); setTimeout(() => btn.classList.remove('flash'), 450); }
+  toast(`Sent "${command}"`, 'success');
+}
+
+// ═══════════════════════════════════════════
+// Layout persistence
+// ═══════════════════════════════════════════
+function layoutKey(device) { return `rf_layout_${device}`; }
+
+function getLayout(device, cmdNames) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(layoutKey(device)) || '{}');
+    if (Array.isArray(saved)) {
+      return { order: saved.filter(c => cmdNames.includes(c)), cols: 0, spans: {}, groups: {} };
+    }
+    // Normalize old span format
+    const spans = {};
+    if (saved.spans) {
+      for (const [cmd, v] of Object.entries(saved.spans)) {
+        spans[cmd] = typeof v === 'number' ? { col: v, row: 1 } : v;
+      }
+    }
+    return {
+      order: (saved.order || []).filter(c => cmdNames.includes(c)),
+      cols: saved.cols || 0,
+      spans,
+      groups: saved.groups || {}
+    };
+  } catch { return { order: [], cols: 0, spans: {}, groups: {} }; }
+}
+
+function saveLayout(device, layoutObj) {
+  localStorage.setItem(layoutKey(device), JSON.stringify(layoutObj));
+}
+
+function getOrderedNames(device, cmdNames) {
+  const layout = getLayout(device, cmdNames);
+  if (layout.order.length === cmdNames.length) return layout.order;
+  const saved = new Set(layout.order);
+  const rest = cmdNames.filter(c => !saved.has(c)).sort();
+  return [...layout.order.filter(c => saved.has(c) && cmdNames.includes(c)), ...rest];
+}
+
+function getCommandSpan(device, command) {
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  return layout.spans[command] || { col: 1, row: 1 };
+}
+
+function getDeviceColumns(device) {
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  return layout.cols || 0;
+}
+
+function setCommandSpan(device, command, colSpan, rowSpan) {
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  const c = Math.max(1, Math.min(4, colSpan || 1));
+  const r = Math.max(1, Math.min(4, rowSpan || 1));
+  if (c === 1 && r === 1) delete layout.spans[command];
+  else layout.spans[command] = { col: c, row: r };
+  saveLayout(device, layout);
+  renderCommands();
+}
+
+function setDeviceColumns(device, cols) {
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  layout.cols = cols;
+  saveLayout(device, layout);
+  renderCommands();
+}
+
+// ═══════════════════════════════════════════
+// Grouping
+// ═══════════════════════════════════════════
+let groupSelect = {};  // device -> Set of selected commands
+
+function toggleGroupSelect(device, command) {
+  if (!groupSelect[device]) groupSelect[device] = new Set();
+  if (groupSelect[device].has(command)) groupSelect[device].delete(command);
+  else groupSelect[device].add(command);
+  renderCommands();
+}
+
+function createGroup(device) {
+  const selected = groupSelect[device];
+  if (!selected || selected.size < 2) return toast('Select at least 2 buttons to group', 'error');
+  const name = prompt('Group name:', 'New Group');
+  if (!name) return;
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  if (!layout.groups) layout.groups = {};
+  layout.groups[name] = [...selected];
+  saveLayout(device, layout);
+  groupSelect[device] = new Set();
+  renderCommands();
+  toast(`Created group "${name}"`, 'success');
+}
+
+function ungroup(device, groupName) {
+  const cmds = loadCommands();
+  const layout = getLayout(device, Object.keys(cmds[device] || {}));
+  if (layout.groups) { delete layout.groups[groupName]; }
+  saveLayout(device, layout);
+  renderCommands();
+  toast(`Ungrouped "${groupName}"`, 'info');
+}
+
+// ═══════════════════════════════════════════
+// Drag-and-drop layout editing
+// ═══════════════════════════════════════════
+let layoutEditing = {};  // device -> true
+
+function toggleLayoutMode(device) {
+  layoutEditing[device] = !layoutEditing[device];
+  renderCommands();
+  if (layoutEditing[device]) {
+    toast('✋ Drag buttons to reorder. Click "Save Layout" when done.', 'info');
+  }
+}
+
+function isLayoutMode(device) { return !!layoutEditing[device]; }
+
+function handleDragStart(e, device, command) {
+  if (!isLayoutMode(device)) { e.preventDefault(); return; }
+  e.dataTransfer.setData('text/plain', JSON.stringify({ device, command }));
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+  setTimeout(() => { if (e.target) e.target.classList.remove('dragging'); }, 0);
+}
+
+function handleDragOver(e, device, command) {
+  if (!isLayoutMode(device)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.target.closest('.remote-btn')?.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  e.target.closest('.remote-btn')?.classList.remove('drag-over');
+}
+
+function handleDrop(e, device, targetCommand) {
+  e.preventDefault();
+  e.target.closest('.remote-btn')?.classList.remove('drag-over');
+  const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+  if (data.device !== device || data.command === targetCommand) return;
+
+  const cmds = loadCommands();
+  const cmdNames = Object.keys(cmds[device] || {});
+  const layout = getLayout(device, cmdNames);
+  const ordered = getOrderedNames(device, cmdNames);
+
+  const srcIdx = ordered.indexOf(data.command);
+  const dstIdx = ordered.indexOf(targetCommand);
+  if (srcIdx === -1 || dstIdx === -1) return;
+
+  ordered.splice(srcIdx, 1);
+  ordered.splice(dstIdx, 0, data.command);
+  layout.order = ordered;
+  saveLayout(device, layout);
+  renderCommands();
+}
+
+function saveLayoutForDevice(device) {
+  const cmds = loadCommands();
+  const cmdNames = Object.keys(cmds[device] || {});
+  const grid = document.getElementById(`layout-${escHtmlId(device)}`);
+  if (!grid) return;
+  const btns = grid.querySelectorAll('.remote-btn');
+  const order = [];
+  btns.forEach(b => {
+    const label = b.querySelector('.btn-label');
+    if (label) order.push(label.textContent);
+  });
+  if (order.length === cmdNames.length) {
+    const layout = getLayout(device, cmdNames);
+    layout.order = order;
+    saveLayout(device, layout);
+    layoutEditing[device] = false;
+    renderCommands();
+    toast('✅ Layout saved!', 'success');
+  }
+}
+
+function saveLayoutForDevice(device) {
+  const cmds = loadCommands();
+  const cmdNames = Object.keys(cmds[device] || {});
+  const grid = document.getElementById(`layout-${escHtmlId(device)}`);
+  if (!grid) return;
+  const btns = grid.querySelectorAll('.remote-btn');
+  const order = [];
+  btns.forEach(b => {
+    const label = b.querySelector('.btn-label');
+    if (label) order.push(label.textContent);
+  });
+  if (order.length === cmdNames.length) {
+    saveLayout(device, order);
+    layoutEditing[device] = false;
+    renderCommands();
+    toast('✅ Layout saved!', 'success');
+  }
+}
+
+function renderCommands() {
+  const cmds = loadCommands();
+  const container = document.getElementById('commandsList');
+  const devices = Object.keys(cmds).sort();
+
+  if (devices.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="icon">📭</div>
+      <p>No commands registered yet</p>
+      <p style="font-size:0.8rem">Click "+ Learn" to register RF/IR buttons, or "Pull from HA" to import existing ones</p>
+    </div>`;
+    document.getElementById('sbCount').textContent = '0';
+    return;
+  }
+
+  let totalCmds = 0;
+  let html = '';
+  for (const device of devices) {
+    const commands = cmds[device];
+    const cmdNames = Object.keys(commands).sort();
+    const ordered = getOrderedNames(device, cmdNames);
+    const cmdCount = cmdNames.length;
+    const layoutOn = isLayoutMode(device);
+    const devCols = getDeviceColumns(device);
+    const layout = getLayout(device, cmdNames);
+    const groups = layout.groups || {};
+    const selected = groupSelect[device] || new Set();
+    totalCmds += cmdCount;
+
+    // Grid style
+    let gridStyle = '';
+    if (devCols > 0) {
+      gridStyle = `grid-template-columns:repeat(${devCols},1fr);`;
+    }
+
+    // Build grouped sets: commands in groups, commands not in any group
+    const groupedCmds = new Map();
+    const ungrouped = [];
+    for (const name of ordered) {
+      let found = false;
+      for (const [gName, gCmds] of Object.entries(groups)) {
+        if (gCmds.includes(name)) {
+          if (!groupedCmds.has(gName)) groupedCmds.set(gName, []);
+          groupedCmds.get(gName).push(name);
+          found = true;
+          break;
+        }
+      }
+      if (!found) ungrouped.push(name);
+    }
+
+    html += `<div class="device-group">
+      <div class="device-header">
+        <h3 onclick="toggleDevice(this)">📟 ${escHtml(device)} <span class="badge">${cmdCount}</span></h3>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+          ${layoutOn ? `<select onchange="setDeviceColumns('${escAttr(device)}',+this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer" onclick="event.stopPropagation()">
+            <option value="0" ${devCols===0?'selected':''}>auto</option>
+            <option value="2" ${devCols===2?'selected':''}>2 col</option>
+            <option value="3" ${devCols===3?'selected':''}>3 col</option>
+            <option value="4" ${devCols===4?'selected':''}>4 col</option>
+            <option value="5" ${devCols===5?'selected':''}>5 col</option>
+          </select>` : ''}
+          ${layoutOn ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();createGroup('${escAttr(device)}')" title="Group selected buttons">📁 Group</button>` : ''}
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleLayoutMode('${escAttr(device)}')">${layoutOn ? '🔒 Done' : '✋ Layout'}</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();renameDevice('${escAttr(device)}')" title="Rename">✏️</button>
+        </div>
+        <span onclick="toggleDevice(this.parentElement.querySelector('h3'))" style="color:var(--text2);font-size:0.8rem;cursor:pointer;user-select:none" class="toggle-arrow">▼</span>
+      </div>
+      <div class="device-commands${layoutOn ? ' layout-mode' : ''}" id="layout-${escHtmlId(device)}" style="${gridStyle}">`;
+
+    // Helper to render a button
+    const renderBtn = (name) => {
+      const cmd = commands[name];
+      if (!cmd) return '';
+      const btnClass = getBtnClass(name, device);
+      const icon = getBtnIcon(name, device);
+      const span = getCommandSpan(device, name);
+      const sel = selected.has(name);
+      const spanStyle = `grid-column:span ${span.col};grid-row:span ${span.row};`;
+      return `
+        <div class="remote-btn ${btnClass}${layoutOn ? ' draggable' : ''}${sel ? ' selected' : ''}" 
+             id="rbtn-${escHtmlId(device)}-${escHtmlId(name)}"
+             style="${spanStyle}"
+             draggable="${layoutOn}"
+             ondragstart="handleDragStart(event,'${escAttr(device)}','${escAttr(name)}')"
+             ondragover="handleDragOver(event,'${escAttr(device)}','${escAttr(name)}')"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event,'${escAttr(device)}','${escAttr(name)}')"
+             onclick="${layoutOn ? `toggleGroupSelect('${escAttr(device)}','${escAttr(name)}')` : `quickSend('${escAttr(device)}','${escAttr(name)}')`}"
+             oncontextmenu="${layoutOn ? '' : `event.preventDefault();openSendModal('${escAttr(device)}','${escAttr(name)}');return false`}"
+             title="${layoutOn ? (sel ? 'Selected — click to deselect' : 'Click to select · Drag to reorder') : 'Tap to send · Right-click for repeats'}">
+          ${layoutOn ? '<span class="drag-handle">⠿</span>' : ''}
+          ${layoutOn ? `<div class="span-controls">
+            <button onclick="event.stopPropagation();setCommandSpan('${escAttr(device)}','${escAttr(name)}',${span.col-1},${span.row})" title="Narrower">↔−</button>
+            <span>${span.col}×${span.row}</span>
+            <button onclick="event.stopPropagation();setCommandSpan('${escAttr(device)}','${escAttr(name)}',${span.col+1},${span.row})" title="Wider">↔+</button>
+            <button onclick="event.stopPropagation();setCommandSpan('${escAttr(device)}','${escAttr(name)}',${span.col},${span.row-1})" title="Shorter">↕−</button>
+            <button onclick="event.stopPropagation();setCommandSpan('${escAttr(device)}','${escAttr(name)}',${span.col},${span.row+1})" title="Taller">↕+</button>
+          </div>` : ''}
+          ${sel ? '<div class="sel-check">✓</div>' : ''}
+          <div class="btn-actions" style="${layoutOn ? 'opacity:0.7' : ''}">
+            <button onclick="event.stopPropagation();renameCommand('${escAttr(device)}','${escAttr(name)}')" title="Rename">✏️</button>
+            <button onclick="event.stopPropagation();deleteCommand('${escAttr(device)}','${escAttr(name)}')" title="Delete">🗑</button>
+          </div>
+          <span class="btn-icon">${icon}</span>
+          <span class="btn-label">${escHtml(name)}</span>
+        </div>`;
+    };
+
+    // Render groups first
+    for (const [gName, gCmds] of groupedCmds) {
+      html += `<div class="cmd-group" style="grid-column:1/-1;">
+        <div class="cmd-group-header">
+          <span>📁 ${escHtml(gName)}</span>
+          ${layoutOn ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();ungroup('${escAttr(device)}','${escAttr(gName)}')">✕ Ungroup</button>` : ''}
+        </div>
+        <div class="cmd-group-grid">
+          ${gCmds.map(renderBtn).join('')}
+        </div>
+      </div>`;
+    }
+
+    // Then ungrouped
+    html += ungrouped.map(renderBtn).join('');
+
+    if (layoutOn) {
+      html += `</div>
+        <div style="padding:8px 16px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="saveLayoutForDevice('${escAttr(device)}')">💾 Save Layout</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();groupSelect['${escAttr(device)}']=new Set();toggleLayoutMode('${escAttr(device)}')">Cancel</button>
+          <span style="font-size:0.68rem;color:var(--text2)">Click to select · Drag to reorder · ↔/↕ to resize · 📁 to group selected</span>
+        </div>`;
+      html += `</div>`;
+    } else {
+      html += `</div></div>`;
+    }
+  }
+
+  container.innerHTML = html;
+  document.getElementById('sbCount').textContent = totalCmds;
+  document.getElementById('deviceList').innerHTML = devices.map(d => `<option value="${escHtml(d)}">`).join('');
+}
+
+function toggleDevice(h3Elem) {
+  const header = h3Elem.parentElement;
+  const commands = header.nextElementSibling;
+  const arrow = header.querySelector('.toggle-arrow');
+  if (!commands || !arrow) return;
+  if (commands.style.display === 'none') {
+    commands.style.display = '';
+    arrow.textContent = '▼';
+  } else {
+    commands.style.display = 'none';
+    arrow.textContent = '▶';
+  }
+}
+
+// ═══════════════════════════════════════════
+// Modal open/close
+// ═══════════════════════════════════════════
+function openLearnModal() {
+  document.getElementById('learnModal').classList.remove('hidden');
+  document.getElementById('learnDevice').focus();
+}
+function closeLearnModal() {
+  document.getElementById('learnModal').classList.add('hidden');
+  const btn = document.getElementById('learnBtn');
+  btn.textContent = '🎓 Start Learning';
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  pendingLearn = null;
+}
+
+function openSendModal(device, command) {
+  document.getElementById('sendModal').classList.remove('hidden');
+  document.getElementById('sendCmdName').textContent = command;
+  document.getElementById('sendCmdName').dataset.command = command;
+  document.getElementById('sendDeviceName').textContent = device;
+  document.getElementById('sendDeviceName').dataset.device = device;
+  document.getElementById('sendRepeats').value = 1;
+}
+function closeSendModal() { document.getElementById('sendModal').classList.add('hidden'); }
+
+function openPullModal() { document.getElementById('pullModal').classList.remove('hidden'); }
+function closePullModal() { document.getElementById('pullModal').classList.add('hidden'); document.getElementById('pullTextarea').value = ''; }
+
+// ═══════════════════════════════════════════
+// Import / Export
+// ═══════════════════════════════════════════
+function refreshCommands() { renderCommands(); toast('Commands refreshed', 'info'); }
+
+async function syncFromHA(silent) {
+  try {
+    const resp = await fetch(BRIDGE_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const haCmds = await resp.json();
+    if (!haCmds || !Object.keys(haCmds).length) {
+      if (!silent) toast('No commands found in HA storage', 'info');
+      return;
+    }
+    const local = loadCommands();
+    let added = 0;
+    for (const [dev, cmds] of Object.entries(haCmds)) {
+      if (!local[dev]) local[dev] = {};
+      for (const [name, info] of Object.entries(cmds)) {
+        if (!local[dev][name]) { local[dev][name] = info; added++; }
+      }
+    }
+    if (added > 0) { saveCommands(local); renderCommands(); }
+    if (!silent) toast(`Synced ${added} new command(s) from HA`, 'success');
+    else if (added > 0) toast(`📥 Pulled ${added} command(s) from HA storage`, 'info');
+  } catch (err) {
+    if (!silent) toast(`Sync failed: ${err.message}. Is the bridge running?`, 'error');
+    console.warn('syncFromHA:', err);
+  }
+}
+
+function exportCommands() {
+  const cmds = loadCommands();
+  const blob = new Blob([JSON.stringify(cmds, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rf-commands-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Commands exported!', 'success');
+}
+
+function importCommands(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      const existing = loadCommands();
+      const merged = { ...existing, ...imported };
+      for (const [dev, cmds] of Object.entries(imported)) {
+        if (!merged[dev]) merged[dev] = {};
+        Object.assign(merged[dev], cmds);
+      }
+      saveCommands(merged);
+      renderCommands();
+      toast(`Imported ${Object.keys(imported).length} device(s)`, 'success');
+    } catch (err) { toast('Invalid JSON file', 'error'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function escHtmlId(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g,'_'); }
+
+function toast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.3s';
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
+// ═══════════════════════════════════════════
+// Event listeners
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeLearnModal();
+    closeSendModal();
+    closePullModal();
+  }
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { closeLearnModal(); closeSendModal(); closePullModal(); } });
+});
+
+const savedToken = localStorage.getItem('ha_token');
+if (savedToken) document.getElementById('tokenInput').value = savedToken;
+document.getElementById('tokenInput').addEventListener('change', () => {
+  const val = document.getElementById('tokenInput').value.trim();
+  if (val) localStorage.setItem('ha_token', val);
+});
+document.getElementById('tokenInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') connect();
+});
+</script>
+</body>
+</html>
