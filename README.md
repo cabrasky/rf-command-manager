@@ -19,7 +19,7 @@ A virtual remote control for Broadlink RM4 Pro RF/IR devices, integrated directl
 
 1. Open HACS in Home Assistant
 2. Go to **Frontend** → **⋮ Menu** → **Custom repositories**
-3. Add `https://github.com/YOUR_USER/rf-command-manager` as type **Lovelace**
+3. Add `https://github.com/cabrasky/rf-command-manager` as type **Lovelace**
 4. Find "RF Command Manager" and click **Download**
 5. Add to your `configuration.yaml`:
 
