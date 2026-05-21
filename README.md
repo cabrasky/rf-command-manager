@@ -1,56 +1,86 @@
 # RF Command Manager
 
-RF Command Manager is a Home Assistant custom integration for organizing Broadlink RF and IR commands in one local library.
+RF Command Manager is a Home Assistant custom integration with a dedicated sidebar app to manage Broadlink RF/IR command libraries from one place.
 
-## Current status
+## What is included
 
-This repository currently contains the backend scaffold for a Home Assistant extension and a first sidebar tab UI:
+- Sidebar panel in Home Assistant for:
+  - Adding, renaming, deleting devices.
+  - Adding, renaming, deleting, reordering commands.
+  - Sending commands immediately.
+  - Learning commands directly from Broadlink devices (direct mode).
+- Home Assistant services for all device and command actions.
+- Websocket API used by the panel.
+- Persistent local storage for the full command library.
 
-- Config entry setup
-- Local storage for devices, commands, and macros
-- Home Assistant services for add, update, delete, and send actions
-- A Home Assistant sidebar panel at `rf-command-manager`
-
-The UI layer is now a working first pass with device grouping, command lists, send/delete/favorite actions, and add forms.
-
-## Services
-
-- `rf_command_manager.add_command`
-- `rf_command_manager.update_command`
-- `rf_command_manager.remove_command`
-- `rf_command_manager.add_device`
-- `rf_command_manager.add_macro`
-- `rf_command_manager.send_command`
-
-## Installation
-
-### HACS
+## Installation (HACS)
 
 1. Open HACS in Home Assistant.
-2. Add this repository as a custom repository.
-3. Select the repository type `Integration`.
-4. Install RF Command Manager as a custom integration.
-5. Restart Home Assistant.
-6. Go to Settings > Devices & services and add RF Command Manager.
-7. Open the new RF Command Manager sidebar tab.
+2. Go to Integrations.
+3. Open the menu and choose Custom repositories.
+4. Add this repository URL as type Integration:
+  - `https://github.com/cabrasky/rf-command-manager`
+5. Find `RF Command Manager` in HACS and install it.
+6. Restart Home Assistant.
+7. Go to Settings > Devices & services > Add integration.
+8. Search for `RF Command Manager`.
+9. Open the new sidebar item `RF Command Manager`.
 
-If HACS says the download will be placed under `/config/www/community/rf-command-manager`, the repository was added as a dashboard/plugin instead of an integration. Remove it from HACS, add it again, and choose `Integration`.
-
-### Troubleshooting
-
-- If Home Assistant reports `Setup failed for 'panel_custom': Invalid config`, remove any existing `panel_custom:` block from `configuration.yaml` or included packages.
-- This integration does not use a manual `panel_custom` YAML panel definition.
-- If HACS still tries to download into `/config/www/community/`, re-add the repository as type `Integration` after removing the old entry.
-
-### Manual install
+## Installation (Manual)
 
 1. Copy `custom_components/rf_command_manager` into your Home Assistant `custom_components` directory.
 2. Restart Home Assistant.
-3. Go to Settings > Devices & services and add RF Command Manager.
-4. Open the RF Command Manager sidebar tab from the Home Assistant menu.
+3. Go to Settings > Devices & services > Add integration.
+4. Search for `RF Command Manager`.
+5. Open the new sidebar item `RF Command Manager`.
 
-### Notes
+## Modes
 
-- This integration stores your RF and IR library locally inside Home Assistant.
-- The first version provides a management dashboard for devices, commands, favorites, and macros.
-- RF learning and capture flows can be added on top of this base later.
+### Broadlink Direct mode
+
+Set these fields when creating a device:
+
+- `connection_type`: `broadlink`
+- `host`: device IP address
+- `mac`: device MAC address
+
+This mode supports command send and command learn.
+
+### Home Assistant Remote mode
+
+Set these fields when creating a device:
+
+- `connection_type`: `home_assistant_remote`
+- `remote_entity_id`: an entity from the `remote` domain
+
+This mode supports command send through `remote.send_command`.
+
+## Services
+
+Domain: `rf_command_manager`
+
+- `add_device`
+- `update_device`
+- `remove_device`
+- `add_command`
+- `update_command`
+- `remove_command`
+- `send_command`
+- `learn_command`
+
+## Websocket commands
+
+- `rf_command_manager/list`
+- `rf_command_manager/device/add`
+- `rf_command_manager/device/update`
+- `rf_command_manager/device/remove`
+- `rf_command_manager/command/add`
+- `rf_command_manager/command/update`
+- `rf_command_manager/command/remove`
+- `rf_command_manager/command/send`
+- `rf_command_manager/command/learn`
+
+## Notes
+
+- Learned command payloads are stored as base64 strings.
+- Broadlink learning in this version is implemented for direct Broadlink mode only.

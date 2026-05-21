@@ -1,206 +1,57 @@
-"""RF Command Manager Home Assistant integration."""
+"""RF Command Manager integration setup."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from pathlib import Path
-from typing import Any
+from dataclasses import dataclass
 
-import voluptuous as vol
-from homeassistant.components import frontend, websocket_api
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.http import StaticPathConfig
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant
 
-from .const import (
-    DOMAIN,
-    PANEL_COMPONENT,
-    PANEL_ICON,
-    PANEL_STATIC_PATH,
-    PANEL_TITLE,
-    PANEL_URL_PATH,
-    PLATFORMS,
-)
-from .manager import CommandManager
+from .broadlink_adapter import BroadlinkAdapter
+from .const import DATA_RUNTIME, DOMAIN
+from .panel import async_setup_panel, async_unload_panel
+from .services import RFServiceLayer, async_register_services, async_unregister_services
+from .storage import RFStorageManager
+from .websocket_api import async_register_websocket_api, async_unregister_websocket_api
 
 
-ServiceHandler = Callable[[ServiceCall], Any]
+@dataclass(slots=True)
+class RuntimeData:
+    """Runtime objects shared across service and API handlers."""
 
-
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up the integration from YAML if needed."""
-    hass.data.setdefault(DOMAIN, {})
-
-    @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/get_library"})
-    @websocket_api.async_response
-    async def websocket_get_library(
-        _hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
-    ) -> None:
-        """Return the current library snapshot."""
-        entries = _hass.data.get(DOMAIN, {})
-        if not entries:
-            connection.send_result(msg["id"], {"version": 1, "devices": {}, "commands": {}, "macros": {}})
-            return
-
-        manager = next(iter(entries.values()))
-        connection.send_result(msg["id"], manager.async_library_snapshot())
-
-    websocket_api.async_register_command(hass, websocket_get_library)
-    return True
+    storage: RFStorageManager
+    service_layer: RFServiceLayer
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up RF Command Manager from a config entry."""
-    manager = CommandManager(hass, entry.entry_id)
-    await manager.async_load()
+    """Set up RF Command Manager from config entry."""
+    hass.data.setdefault(DOMAIN, {})
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
+    storage = RFStorageManager(hass)
+    await storage.async_load()
 
-    static_path = Path(__file__).parent / "static"
-    if not frontend.async_panel_exists(hass, PANEL_URL_PATH):
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(PANEL_STATIC_PATH, static_path, cache_headers=False)]
-        )
-        frontend.async_register_built_in_panel(
-            hass,
-            "custom",
-            sidebar_title=PANEL_TITLE,
-            sidebar_icon=PANEL_ICON,
-            frontend_url_path=PANEL_URL_PATH,
-            config={
-                "_panel_custom": {
-                    "name": PANEL_COMPONENT,
-                    "module_url": f"{PANEL_STATIC_PATH}/rf_command_manager_panel.js",
-                    "embed_iframe": False,
-                    "trust_external": False,
-                }
-            },
-        )
+    service_layer = RFServiceLayer(storage=storage, adapter=BroadlinkAdapter(hass))
+    runtime = RuntimeData(storage=storage, service_layer=service_layer)
 
-    async def handle_add_command(call: ServiceCall) -> None:
-        await manager.async_add_command(
-            name=call.data["name"],
-            command_type=call.data["command_type"],
-            payload=call.data["payload"],
-            device_id=call.data.get("device_id"),
-            favorite=call.data.get("favorite", False),
-        )
+    hass.data[DOMAIN][DATA_RUNTIME] = runtime
+    hass.data[DOMAIN][entry.entry_id] = runtime
 
-    async def handle_update_command(call: ServiceCall) -> None:
-        await manager.async_update_command(
-            command_id=call.data["command_id"],
-            name=call.data.get("name"),
-            payload=call.data.get("payload"),
-            device_id=call.data.get("device_id"),
-            favorite=call.data.get("favorite"),
-        )
+    await async_register_services(hass, service_layer)
+    async_register_websocket_api(hass, service_layer)
+    await async_setup_panel(hass)
 
-    async def handle_remove_command(call: ServiceCall) -> None:
-        await manager.async_remove_command(call.data["command_id"])
-
-    async def handle_add_device(call: ServiceCall) -> None:
-        await manager.async_add_device(call.data["name"], call.data.get("notes"))
-
-    async def handle_add_macro(call: ServiceCall) -> None:
-        await manager.async_add_macro(
-            name=call.data["name"],
-            command_ids=call.data["command_ids"],
-        )
-
-    async def handle_send_command(call: ServiceCall) -> None:
-        await manager.async_record_send(call.data["command_id"])
-
-    services: dict[str, tuple[ServiceHandler, vol.Schema]] = {
-        "add_command": (
-            handle_add_command,
-            vol.Schema(
-                {
-                    vol.Required("name"): str,
-                    vol.Required("command_type"): vol.In(["rf", "ir", "macro"]),
-                    vol.Required("payload"): str,
-                    vol.Optional("device_id"): str,
-                    vol.Optional("favorite", default=False): bool,
-                }
-            ),
-        ),
-        "update_command": (
-            handle_update_command,
-            vol.Schema(
-                {
-                    vol.Required("command_id"): str,
-                    vol.Optional("name"): str,
-                    vol.Optional("payload"): str,
-                    vol.Optional("device_id"): str,
-                    vol.Optional("favorite"): bool,
-                }
-            ),
-        ),
-        "remove_command": (
-            handle_remove_command,
-            vol.Schema({vol.Required("command_id"): str}),
-        ),
-        "add_device": (
-            handle_add_device,
-            vol.Schema(
-                {
-                    vol.Required("name"): str,
-                    vol.Optional("notes"): str,
-                }
-            ),
-        ),
-        "add_macro": (
-            handle_add_macro,
-            vol.Schema(
-                {
-                    vol.Required("name"): str,
-                    vol.Required("command_ids"): [str],
-                }
-            ),
-        ),
-        "send_command": (
-            handle_send_command,
-            vol.Schema({vol.Required("command_id"): str}),
-        ),
-    }
-
-    for service_name, (handler, schema) in services.items():
-        hass.services.async_register(
-            DOMAIN,
-            service_name,
-            handler,
-            schema=schema,
-        )
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload the config entry and service handlers."""
-    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        return False
+    """Unload RF Command Manager config entry."""
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
 
-    manager = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    if manager is not None:
-        await manager.async_close()
+    await async_unregister_services(hass)
+    async_unregister_websocket_api(hass)
+    await async_unload_panel(hass)
 
-    frontend.async_remove_panel(hass, PANEL_URL_PATH, warn_if_unknown=False)
-
-    for service_name in (
-        "add_command",
-        "update_command",
-        "remove_command",
-        "add_device",
-        "add_macro",
-        "send_command",
-    ):
-        if hass.services.has_service(DOMAIN, service_name):
-            hass.services.async_remove(DOMAIN, service_name)
+    if DOMAIN in hass.data:
+        hass.data[DOMAIN].pop(DATA_RUNTIME, None)
 
     return True
-
-
-@callback
-def get_manager(hass: HomeAssistant, entry_id: str) -> CommandManager:
-    """Return the active command manager for an entry."""
-    return hass.data[DOMAIN][entry_id]

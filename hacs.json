@@ -1,5 +1,12 @@
 {
   "name": "RF Command Manager",
-  "render_readme": true,
-  "homeassistant": "2024.1.0"
+  "content_in_root": false,
+  "country": [
+    "*"
+  ],
+  "domains": [
+    "rf_command_manager"
+  ],
+  "homeassistant": "2024.6.0",
+  "render_readme": true
 }
