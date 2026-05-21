@@ -24,4 +24,24 @@ The UI layer is now a working first pass with device grouping, command lists, se
 
 ## Installation
 
-Copy `custom_components/rf_command_manager` into your Home Assistant `custom_components` folder, then add the integration through the Home Assistant UI.
+### HACS
+
+1. Open HACS in Home Assistant.
+2. Add this repository as a custom repository if it is not already listed.
+3. Install RF Command Manager as a custom integration.
+4. Restart Home Assistant.
+5. Go to Settings > Devices & services and add RF Command Manager.
+6. Open the new RF Command Manager sidebar tab.
+
+### Manual install
+
+1. Copy `custom_components/rf_command_manager` into your Home Assistant `custom_components` directory.
+2. Restart Home Assistant.
+3. Go to Settings > Devices & services and add RF Command Manager.
+4. Open the RF Command Manager sidebar tab from the Home Assistant menu.
+
+### Notes
+
+- This integration stores your RF and IR library locally inside Home Assistant.
+- The first version provides a management dashboard for devices, commands, favorites, and macros.
+- RF learning and capture flows can be added on top of this base later.

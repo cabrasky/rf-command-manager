@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.components import frontend, panel_custom, websocket_api
+from homeassistant.components import frontend, websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, ServiceCall, callback
@@ -61,15 +61,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(PANEL_STATIC_PATH, static_path, cache_headers=False)]
         )
-        await panel_custom.async_register_panel(
-            hass=hass,
-            frontend_url_path=PANEL_URL_PATH,
-            webcomponent_name=PANEL_COMPONENT,
+        frontend.async_register_built_in_panel(
+            hass,
+            "custom",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
-            module_url=f"{PANEL_STATIC_PATH}/rf_command_manager_panel.js",
-            embed_iframe=False,
-            require_admin=False,
+            frontend_url_path=PANEL_URL_PATH,
+            config={
+                "_panel_custom": {
+                    "name": PANEL_COMPONENT,
+                    "module_url": f"{PANEL_STATIC_PATH}/rf_command_manager_panel.js",
+                    "embed_iframe": False,
+                    "trust_external": False,
+                }
+            },
         )
 
     async def handle_add_command(call: ServiceCall) -> None:
