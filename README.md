@@ -27,11 +27,14 @@ The UI layer is now a working first pass with device grouping, command lists, se
 ### HACS
 
 1. Open HACS in Home Assistant.
-2. Add this repository as a custom repository if it is not already listed.
-3. Install RF Command Manager as a custom integration.
-4. Restart Home Assistant.
-5. Go to Settings > Devices & services and add RF Command Manager.
-6. Open the new RF Command Manager sidebar tab.
+2. Add this repository as a custom repository.
+3. Select the repository type `Integration`.
+4. Install RF Command Manager as a custom integration.
+5. Restart Home Assistant.
+6. Go to Settings > Devices & services and add RF Command Manager.
+7. Open the new RF Command Manager sidebar tab.
+
+If HACS says the download will be placed under `/config/www/community/rf-command-manager`, the repository was added as a dashboard/plugin instead of an integration. Remove it from HACS, add it again, and choose `Integration`.
 
 ### Manual install
 
