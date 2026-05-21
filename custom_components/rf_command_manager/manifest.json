@@ -1,0 +1,12 @@
+{
+  "domain": "rf_command_manager",
+  "name": "RF Command Manager",
+  "codeowners": ["@cabrasky"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/cabrasky/rf-command-manager",
+  "iot_class": "local_push",
+  "integration_type": "hub",
+  "requirements": [],
+  "version": "0.1.0"
+}

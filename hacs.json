@@ -1,11 +1,5 @@
 {
   "name": "RF Command Manager",
-  "content_in_root": false,
-  "filename": "rf-command-manager.js",
-  "homeassistant": "2024.1.0",
   "render_readme": true,
-  "zip_release": false,
-  "country": [],
-  "domains": ["remote", "broadlink"],
-  "iot_class": "local_push"
+  "homeassistant": "2024.1.0"
 }

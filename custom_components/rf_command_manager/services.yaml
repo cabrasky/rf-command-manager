@@ -1,0 +1,97 @@
+add_command:
+  name: Add command
+  description: Add a learned or imported command to the local library.
+  fields:
+    name:
+      required: true
+      selector:
+        text:
+    command_type:
+      required: true
+      selector:
+        select:
+          options:
+            - rf
+            - ir
+            - macro
+    payload:
+      required: true
+      selector:
+        text:
+    device_id:
+      required: false
+      selector:
+        text:
+    favorite:
+      required: false
+      selector:
+        boolean:
+
+update_command:
+  name: Update command
+  description: Rename or update an existing command.
+  fields:
+    command_id:
+      required: true
+      selector:
+        text:
+    name:
+      required: false
+      selector:
+        text:
+    payload:
+      required: false
+      selector:
+        text:
+    device_id:
+      required: false
+      selector:
+        text:
+    favorite:
+      required: false
+      selector:
+        boolean:
+
+remove_command:
+  name: Remove command
+  description: Delete a command from the library.
+  fields:
+    command_id:
+      required: true
+      selector:
+        text:
+
+add_device:
+  name: Add device
+  description: Create a device grouping in the library.
+  fields:
+    name:
+      required: true
+      selector:
+        text:
+    notes:
+      required: false
+      selector:
+        text:
+
+add_macro:
+  name: Add macro
+  description: Create a command sequence.
+  fields:
+    name:
+      required: true
+      selector:
+        text:
+    command_ids:
+      required: true
+      selector:
+        object:
+
+send_command:
+  name: Send command
+  description: Register a command send action.
+  fields:
+    command_id:
+      required: true
+      selector:
+        text:
