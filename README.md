@@ -36,6 +36,12 @@ The UI layer is now a working first pass with device grouping, command lists, se
 
 If HACS says the download will be placed under `/config/www/community/rf-command-manager`, the repository was added as a dashboard/plugin instead of an integration. Remove it from HACS, add it again, and choose `Integration`.
 
+### Troubleshooting
+
+- If Home Assistant reports `Setup failed for 'panel_custom': Invalid config`, remove any existing `panel_custom:` block from `configuration.yaml` or included packages.
+- This integration does not use a manual `panel_custom` YAML panel definition.
+- If HACS still tries to download into `/config/www/community/`, re-add the repository as type `Integration` after removing the old entry.
+
 ### Manual install
 
 1. Copy `custom_components/rf_command_manager` into your Home Assistant `custom_components` directory.
